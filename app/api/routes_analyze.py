@@ -11,6 +11,7 @@ from app.models import AnalyzeRequest, RepoAnalysis
 from app.services import repo_fetcher, file_scanner, solidity_parser, heuristics_engine
 from app.services import value_movement_mapper, property_checklist_engine, risk_scenario_engine
 from app.services import report_builder, storage
+from app.services.safety_filter import sanitize_text, sanitize_model
 from app.utils.hashing import generate_job_id
 from app.utils.github import is_valid_github_url
 
@@ -89,6 +90,18 @@ async def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
             risk_flags, value_movements, review_properties
         )
         analysis.risk_scenarios = risk_scenarios
+
+        # Step 7b: Run safety filter on all generated outputs
+        analysis.value_movements = sanitize_model(analysis.value_movements)
+        analysis.review_properties = sanitize_model(analysis.review_properties)
+        analysis.risk_scenarios = sanitize_model(analysis.risk_scenarios)
+        analysis.risk_flags = [sanitize_model(f) for f in analysis.risk_flags]
+        for c in analysis.contracts:
+            if c.ai_summary:
+                c.ai_summary = sanitize_text(c.ai_summary)
+        for fn in analysis.functions:
+            if fn.ai_summary:
+                fn.ai_summary = sanitize_text(fn.ai_summary)
 
         # Step 8: Set review priorities based on flag counts
         for contract in analysis.contracts:

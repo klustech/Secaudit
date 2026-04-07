@@ -18,6 +18,12 @@ class ReviewProperty(BaseModel):
     related_functions: list[str] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"] = "medium"
     manual_checks: list[str] = Field(default_factory=list)
+    # Provenance fields
+    source_type: Literal[
+        "parsed_fact", "heuristic_flag", "ai_review_note",
+    ] = "heuristic_flag"
+    confidence_basis: str = ""
+    evidence_refs: list[str] = Field(default_factory=list)
 
 
 class PropertyChecklistReport(BaseModel):

@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
+from pathlib import Path
 
 import gradio as gr
 import httpx
+
+# Allow importing from project root
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.services.safety_filter import sanitize_text, sanitize_dict
 
 API_BASE = "http://localhost:8000"
 
@@ -49,24 +56,24 @@ def start_analysis(repo_url: str, ref: str, docs_url: str, scope_notes: str):
     # Fetch results
     try:
         summary_resp = httpx.get(f"{API_BASE}/jobs/{job_id}/summary", timeout=10.0)
-        summary = json.dumps(summary_resp.json(), indent=2)
+        summary = json.dumps(sanitize_dict(summary_resp.json()), indent=2)
 
         report_resp = httpx.get(f"{API_BASE}/jobs/{job_id}/report.md", timeout=10.0)
-        report_md = report_resp.text
+        report_md = sanitize_text(report_resp.text)
 
         flags_resp = httpx.get(f"{API_BASE}/jobs/{job_id}/flags", timeout=10.0)
         flags_data = flags_resp.json().get("flags", [])
-        flags_table = _flags_to_table(flags_data)
+        flags_table = sanitize_text(_flags_to_table(flags_data))
 
         # Fetch new analysis tabs
         vm_resp = httpx.get(f"{API_BASE}/jobs/{job_id}/value-movements", timeout=10.0)
-        vm_table = _value_movements_to_table(vm_resp.json().get("edges", []))
+        vm_table = sanitize_text(_value_movements_to_table(vm_resp.json().get("edges", [])))
 
         rp_resp = httpx.get(f"{API_BASE}/jobs/{job_id}/review-properties", timeout=10.0)
-        rp_md = _review_properties_to_md(rp_resp.json().get("properties", []))
+        rp_md = sanitize_text(_review_properties_to_md(rp_resp.json().get("properties", [])))
 
         rs_resp = httpx.get(f"{API_BASE}/jobs/{job_id}/risk-scenarios", timeout=10.0)
-        rs_md = _risk_scenarios_to_md(rs_resp.json().get("scenarios", []))
+        rs_md = sanitize_text(_risk_scenarios_to_md(rs_resp.json().get("scenarios", [])))
 
         return summary, report_md, flags_table, vm_table, rp_md, rs_md, job_id
     except Exception as e:

@@ -24,6 +24,13 @@ class ValueMovementEdge(BaseModel):
     external_interaction: bool = False
     notes: list[str] = Field(default_factory=list)
     manual_checks: list[str] = Field(default_factory=list)
+    # Confidence and provenance fields
+    confidence: Literal["high", "possible"] = "high"
+    source_type: Literal[
+        "parsed_fact", "heuristic_flag", "ai_review_note",
+    ] = "parsed_fact"
+    confidence_basis: str = ""
+    evidence_refs: list[str] = Field(default_factory=list)
 
 
 class ValueMovementReport(BaseModel):

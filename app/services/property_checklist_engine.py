@@ -141,6 +141,9 @@ class PropertyChecklistEngine:
                     "Check for rounding errors in division operations",
                     "Look for paths that update balances but not totals (or vice versa)",
                 ],
+                source_type="parsed_fact",
+                confidence_basis="regex_match",
+                evidence_refs=[f"state_var:balance_mapping", f"state_var:{total_name}"],
             ))
 
         if has_balance:
@@ -161,6 +164,9 @@ class PropertyChecklistEngine:
                         "Verify balance is decreased by exact withdrawal amount",
                         "Verify withdrawal cannot be repeated via reentrancy",
                     ],
+                    source_type="parsed_fact",
+                    confidence_basis="regex_match",
+                    evidence_refs=[f"{contract.name}.{f.name}" for f in withdraw_fns],
                 ))
 
         return properties
@@ -203,6 +209,9 @@ class PropertyChecklistEngine:
                     "Check if role can be escalated by non-admin",
                     "Look for functions that bypass access control",
                 ],
+                source_type="heuristic_flag",
+                confidence_basis="regex_match",
+                evidence_refs=[f"{contract.name}.{f.name}" for f in admin_fns],
             ))
 
         if any(v for v in contract.state_vars if "pause" in v.lower()):
@@ -226,6 +235,9 @@ class PropertyChecklistEngine:
                         "Check that withdrawal is still possible when paused (emergency exit)",
                         "Verify pause can only be set by authorized roles",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="regex_match",
+                    evidence_refs=[f"{contract.name}.{f.name}" for f in pause_fns],
                 ))
 
         return properties
@@ -253,6 +265,9 @@ class PropertyChecklistEngine:
                         "Check for uncapped minting",
                         "Verify burn cannot underflow totalSupply",
                     ],
+                    source_type="parsed_fact",
+                    confidence_basis="regex_match",
+                    evidence_refs=[f"{contract.name}.{f.name}" for f in mint_fns + burn_fns],
                 ))
 
         if _SHARE_PRICE.search(source):
@@ -272,6 +287,9 @@ class PropertyChecklistEngine:
                     "Verify first depositor cannot manipulate share price",
                     "Check if direct token transfer can inflate assets without minting shares",
                 ],
+                source_type="heuristic_flag",
+                confidence_basis="regex_match",
+                evidence_refs=related,
             ))
 
         return properties
@@ -300,6 +318,9 @@ class PropertyChecklistEngine:
                     "Check that nonce is included in signature digest",
                     "Look for nonce reuse via cross-chain replay",
                 ],
+                source_type="parsed_fact",
+                confidence_basis="regex_match",
+                evidence_refs=related,
             ))
 
         if _DEADLINE_PATTERN.search(source):
@@ -319,6 +340,9 @@ class PropertyChecklistEngine:
                     "Check for off-by-one in timestamp comparison (<= vs <)",
                     "Verify deadline cannot be set to far future or zero",
                 ],
+                source_type="parsed_fact",
+                confidence_basis="regex_match",
+                evidence_refs=related,
             ))
 
         return properties
@@ -346,6 +370,9 @@ class PropertyChecklistEngine:
                     "Verify no constructor in upgradeable proxy",
                     "Check if uninitialized proxy can be taken over",
                 ],
+                source_type="parsed_fact",
+                confidence_basis="regex_match",
+                evidence_refs=[f"{contract.name}.{f.name}" for f in init_fns],
             ))
 
         return properties
@@ -371,6 +398,9 @@ class PropertyChecklistEngine:
                     "Check for reasonable bounds on configurable values",
                     "Verify configuration changes emit events for off-chain monitoring",
                 ],
+                source_type="heuristic_flag",
+                confidence_basis="regex_match",
+                evidence_refs=[f"{contract.name}.{f.name}" for f in config_fns],
             ))
 
         return properties
@@ -399,6 +429,9 @@ class PropertyChecklistEngine:
                     "Verify zero/negative price is rejected",
                     "Consider manipulation resistance (TWAP, multiple sources)",
                 ],
+                source_type="heuristic_flag",
+                confidence_basis="regex_match",
+                evidence_refs=related,
             ))
 
         return properties
@@ -428,6 +461,9 @@ class PropertyChecklistEngine:
                     "Verify deadline/expiry is enforced",
                     "Confirm ecrecover result is checked for address(0)",
                 ],
+                source_type="heuristic_flag",
+                confidence_basis="regex_match",
+                evidence_refs=related,
             ))
 
         return properties

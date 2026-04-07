@@ -89,6 +89,9 @@ class RiskScenarioEngine:
                         "Add appropriate access control modifier",
                         "Consider two-step process for sensitive operations",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
             elif flag.category == "external-call":
@@ -110,6 +113,9 @@ class RiskScenarioEngine:
                         "Apply checks-effects-interactions pattern",
                         "Add reentrancy guard if state is modified",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
             elif flag.category == "funds-flow":
@@ -130,6 +136,9 @@ class RiskScenarioEngine:
                         "Ensure accounting updates precede external transfers",
                         "Add reentrancy protection",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
             elif flag.category == "initialization":
@@ -150,6 +159,9 @@ class RiskScenarioEngine:
                         "Use initializer modifier for single-use enforcement",
                         "Set all critical state in initialization",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
             elif flag.category == "upgradeability":
@@ -170,6 +182,9 @@ class RiskScenarioEngine:
                         "Restrict upgrade to authorized roles with timelock",
                         "Ensure storage layout compatibility",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
             elif flag.category == "oracle-dependency":
@@ -190,6 +205,9 @@ class RiskScenarioEngine:
                         "Add staleness and zero-value validation",
                         "Consider fallback oracle strategy",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
             elif flag.category == "signature-auth":
@@ -210,6 +228,9 @@ class RiskScenarioEngine:
                         "Use EIP-712 with domain separator including chain ID",
                         "Include nonce and deadline in signed data",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
             elif flag.category == "timelock-queue":
@@ -229,6 +250,9 @@ class RiskScenarioEngine:
                         "Enforce minimum delay",
                         "Ensure queue IDs are unique",
                     ],
+                    source_type="heuristic_flag",
+                    confidence_basis="heuristic_mapping",
+                    evidence_refs=[fn_label, f"flag:{flag.category}:{flag.severity}"],
                 ))
 
         return scenarios
@@ -261,6 +285,9 @@ class RiskScenarioEngine:
                     "Add access control or entitlement checks",
                     "Ensure accounting precedes external transfers",
                 ],
+                source_type="parsed_fact",
+                confidence_basis="regex_match",
+                evidence_refs=affected,
             ))
 
         # External interactions near state transitions
@@ -286,6 +313,9 @@ class RiskScenarioEngine:
                     "Apply checks-effects-interactions pattern",
                     "Add nonReentrant guard to value-moving functions",
                 ],
+                source_type="parsed_fact",
+                confidence_basis="regex_match",
+                evidence_refs=affected,
             ))
 
         # Unbounded approvals
@@ -309,6 +339,9 @@ class RiskScenarioEngine:
                     "Use exact-amount approvals when possible",
                     "Reset approval to zero after use",
                 ],
+                source_type="parsed_fact",
+                confidence_basis="regex_match",
+                evidence_refs=affected,
             ))
 
         return scenarios
@@ -333,6 +366,9 @@ class RiskScenarioEngine:
                 remediation_themes=[
                     "Verify property holds for all state-changing paths",
                 ],
+                source_type=prop.source_type,
+                confidence_basis=prop.confidence_basis or "heuristic_mapping",
+                evidence_refs=prop.evidence_refs or prop.related_functions[:5],
             ))
 
         return scenarios
