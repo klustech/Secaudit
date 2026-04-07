@@ -1,11 +1,18 @@
-"""Job status and data retrieval endpoints."""
+"""Job status and data retrieval endpoints.
+
+Sanitization note: All data returned by these endpoints is sanitized via
+``sanitize_dict`` as a **defense-in-depth** measure.  The pipeline already
+sanitizes before persistence (see routes_analyze.py Step 7b), so under
+normal operation these calls are no-ops.  They guard against future code
+paths that might bypass the pipeline or manual edits to stored data.
+"""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
 from app.services import storage
-from app.services.safety_filter import sanitize_dict, sanitize_text
+from app.services.sanitization_policy import sanitize_dict
 from app.models.fund_flow import FundFlowEdge, FundFlowGraph
 from app.models.attack_surface import Invariant, InvariantReport
 from app.models.attack_path import AttackPath, AttackSurfaceReport
