@@ -39,6 +39,8 @@ def build_markdown(analysis: RepoAnalysis) -> str:
     high_flags = [f for f in analysis.risk_flags if f.severity in ("critical", "high")]
     if high_flags:
         lines.append("## Top Risk Flags")
+        lines.append("*Source: Heuristic flag*")
+        lines.append("")
         for i, flag in enumerate(high_flags[:20], 1):
             lines.append(f"{i}. **[{flag.severity.upper()}] {flag.category}** — "
                          f"`{flag.contract}.{flag.function}`")
@@ -59,20 +61,22 @@ def build_markdown(analysis: RepoAnalysis) -> str:
         lines.append(f"- State variables: {len(c.state_vars)}")
         lines.append(f"- Review priority: {c.review_priority}")
         if c.ai_summary:
-            lines.append(f"- AI summary *(manual validation required)*: {c.ai_summary}")
+            lines.append(f"- AI-generated review note *(manual validation required)*: {c.ai_summary}")
         lines.append("")
 
     # Functions requiring manual review
     flagged_fns = [f for f in analysis.functions if f.risk_tags]
     if flagged_fns:
         lines.append("## Functions Requiring Manual Review")
+        lines.append("*Source: Heuristic flag*")
+        lines.append("")
         for fn in flagged_fns:
             lines.append(f"### `{fn.contract}.{fn.signature}`")
             lines.append(f"- File: `{fn.file_path}`")
             lines.append(f"- Visibility: {fn.visibility}")
             lines.append(f"- Risk buckets: {', '.join(fn.risk_tags)}")
             if fn.ai_summary:
-                lines.append(f"- AI summary *(manual validation required)*: {fn.ai_summary}")
+                lines.append(f"- AI-generated review note *(manual validation required)*: {fn.ai_summary}")
             if fn.manual_checks:
                 lines.append("- Manual checks:")
                 for check in fn.manual_checks:
@@ -82,101 +86,97 @@ def build_markdown(analysis: RepoAnalysis) -> str:
     # All risk flags
     if analysis.risk_flags:
         lines.append("## All Risk Flags")
+        lines.append("*Source: Heuristic flag*")
+        lines.append("")
         for flag in analysis.risk_flags:
             lines.append(f"### [{flag.severity.upper()}] {flag.category} — `{flag.contract}.{flag.function}`")
             lines.append(f"- Evidence: {flag.evidence}")
             lines.append(f"- Explanation: {flag.explanation}")
             lines.append(f"- Source: {flag.source}")
             if flag.manual_validation:
-                lines.append("- Validation steps:")
+                lines.append("- Manual validation required:")
                 for step in flag.manual_validation:
                     lines.append(f"  - [ ] {step}")
             lines.append("")
 
-    # Fund Flow Analysis
-    ff = analysis.fund_flows
-    if ff.edges:
-        lines.append("## Fund Flow Analysis")
+    # Value Movement Review (replaces Fund Flow Analysis)
+    vm = analysis.value_movements
+    if vm.edges:
+        lines.append("## Value Movement Review")
+        lines.append("*Source: Parsed fact*")
         lines.append("")
-        if ff.entry_points:
-            lines.append("### Value Entry Points (money IN)")
-            for ep in ff.entry_points:
-                lines.append(f"- `{ep}`")
-            lines.append("")
-        if ff.exit_points:
-            lines.append("### Value Exit Points (money OUT)")
-            for ep in ff.exit_points:
-                marker = " **[UNGUARDED]**" if ep in ff.unguarded_exits else ""
-                lines.append(f"- `{ep}`{marker}")
-            lines.append("")
-        if ff.unguarded_exits:
-            lines.append("### Unguarded Exit Points")
-            for ue in ff.unguarded_exits:
-                lines.append(f"- `{ue}` — no access control detected on value outflow")
-            lines.append("")
-        lines.append("### Flow Edges")
-        lines.append("| From | To | Mechanism | Token | Recipient | Guarded | Reentrancy Safe |")
-        lines.append("|------|----|-----------|-------|-----------|---------|-----------------|")
-        for edge in ff.edges:
-            src = f"{edge.source_contract}.{edge.source_function}" if edge.source_function else edge.source_contract
-            sink = f"{edge.sink_contract}.{edge.sink_function}" if edge.sink_function else edge.sink_contract
+        for s in vm.summary:
+            lines.append(f"- {s}")
+        lines.append("")
+        lines.append("### Value Movement Edges")
+        lines.append("| Contract | Function | Direction | Asset | Destination | "
+                      "Caller Influenced | Access Controlled | Manual Checks |")
+        lines.append("|----------|----------|-----------|-------|-------------|"
+                      "-------------------|-------------------|---------------|")
+        for edge in vm.edges:
+            checks_str = "; ".join(edge.manual_checks[:2]) if edge.manual_checks else ""
             lines.append(
-                f"| `{src}` | `{sink}` | {edge.mechanism} | "
-                f"{edge.token} | {edge.recipient} | "
-                f"{'Yes' if edge.guarded else 'No'} | "
-                f"{'Yes' if edge.reentrancy_safe else 'No'} |"
+                f"| `{edge.contract}` | `{edge.function}` | {edge.direction} | "
+                f"{edge.asset_type} | {edge.destination_hint or '-'} | "
+                f"{'Yes' if edge.caller_influenced else 'No'} | "
+                f"{'Yes' if edge.access_controlled else 'No'} | "
+                f"{checks_str} |"
             )
         lines.append("")
 
-    # Invariant Analysis
-    inv = analysis.invariants
-    if inv.invariants:
-        lines.append("## Invariant Analysis")
-        lines.append(f"*{inv.summary}*")
+    # Review Properties Checklist (replaces Invariant Analysis)
+    rp = analysis.review_properties
+    if rp.properties:
+        lines.append("## Review Properties Checklist")
+        lines.append("*Source: Heuristic flag + AI-generated review note*")
         lines.append("")
-        for i, invariant in enumerate(inv.invariants, 1):
-            threatened = " **THREATENED**" if invariant.threatened_by else ""
-            lines.append(f"### Invariant {i}: {invariant.description}{threatened}")
-            lines.append(f"- Kind: {invariant.kind}")
-            lines.append(f"- Confidence: {invariant.confidence}")
-            lines.append(f"- Evidence: {invariant.evidence}")
-            if invariant.threatened_by:
-                lines.append(f"- Threatened by: {', '.join(f'`{t}`' for t in invariant.threatened_by)}")
-            if invariant.manual_checks:
-                lines.append("- Manual checks:")
-                for check in invariant.manual_checks:
+        for s in rp.summary:
+            lines.append(f"*{s}*")
+        lines.append("")
+        for i, prop in enumerate(rp.properties, 1):
+            lines.append(f"### Property {i}: {prop.statement}")
+            lines.append(f"- Kind: {prop.kind}")
+            lines.append(f"- Rationale: {prop.rationale}")
+            lines.append(f"- Confidence: {prop.confidence}")
+            if prop.related_functions:
+                lines.append(f"- Related functions: {', '.join(f'`{f}`' for f in prop.related_functions)}")
+            if prop.manual_checks:
+                lines.append("- Manual validation required:")
+                for check in prop.manual_checks:
                     lines.append(f"  - [ ] {check}")
             lines.append("")
 
-    # Attack Surface Analysis
-    atk = analysis.attack_surface
-    if atk.paths:
-        lines.append("## Attack Surface Analysis")
-        lines.append(f"*{atk.summary}*")
+    # Risk Scenarios for Manual Validation (replaces Attack Surface Analysis)
+    rs = analysis.risk_scenarios
+    if rs.scenarios:
+        lines.append("## Risk Scenarios for Manual Validation")
+        lines.append("*Source: AI-generated review note*")
+        lines.append("")
+        for s in rs.summary:
+            lines.append(f"*{s}*")
         lines.append("")
 
         # Group by severity
-        for sev in ["critical", "high", "medium", "low"]:
-            sev_paths = [p for p in atk.paths if p.severity == sev]
-            if not sev_paths:
+        for sev in ["high", "medium", "low"]:
+            sev_scenarios = [s for s in rs.scenarios if s.severity_hint == sev]
+            if not sev_scenarios:
                 continue
-            lines.append(f"### {sev.upper()} Severity Paths")
-            for path in sev_paths:
-                lines.append(f"#### [{path.id}] {path.title}")
-                lines.append(f"- Category: {path.risk_category}")
-                lines.append(f"- Affected: {', '.join(f'`{f}`' for f in path.affected_functions)}")
-                lines.append(f"- Consequence: {path.consequence}")
-                lines.append(f"- Likelihood: {path.likelihood}")
-                if path.preconditions:
-                    lines.append("- Preconditions:")
-                    for pre in path.preconditions:
-                        lines.append(f"  - {pre}")
-                lines.append(f"- Why concerning: {path.why_concerning}")
-                lines.append(f"- Existing mitigations: {path.what_prevents_it}")
-                if path.validation_steps:
-                    lines.append("- Validation steps:")
-                    for step in path.validation_steps:
+            lines.append(f"### {sev.upper()} Priority Scenarios")
+            for scenario in sev_scenarios:
+                lines.append(f"#### {scenario.title}")
+                lines.append(f"- Category: {scenario.category}")
+                lines.append(f"- Why it matters: {scenario.why_it_matters}")
+                if scenario.affected_functions:
+                    lines.append(f"- Affected: {', '.join(f'`{f}`' for f in scenario.affected_functions)}")
+                lines.append(f"- Risky assumption: {scenario.risky_assumption}")
+                if scenario.manual_validation_steps:
+                    lines.append("- Manual validation required:")
+                    for step in scenario.manual_validation_steps:
                         lines.append(f"  - [ ] {step}")
+                if scenario.remediation_themes:
+                    lines.append("- Remediation themes:")
+                    for theme in scenario.remediation_themes:
+                        lines.append(f"  - {theme}")
                 lines.append("")
 
     # Notes
@@ -188,6 +188,9 @@ def build_markdown(analysis: RepoAnalysis) -> str:
 
     lines.append("---")
     lines.append("*Generated by Audit Copilot. All AI outputs require manual validation.*")
+    lines.append("")
+    lines.append("**Label key:** Every item is labeled as one of: "
+                  "Parsed fact | Heuristic flag | AI-generated review note | Manual validation required")
     return "\n".join(lines)
 
 

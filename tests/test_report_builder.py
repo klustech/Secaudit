@@ -56,6 +56,21 @@ def test_markdown_contains_risk_flags():
     assert "Check reentrancy" in md
 
 
+def test_markdown_uses_new_section_names():
+    analysis = _make_analysis()
+    md = build_markdown(analysis)
+    # Should NOT contain old section names
+    assert "Fund Flow Analysis" not in md
+    assert "Invariant Analysis" not in md
+    assert "Attack Surface Analysis" not in md
+
+
+def test_markdown_contains_label_key():
+    analysis = _make_analysis()
+    md = build_markdown(analysis)
+    assert "Parsed fact" in md or "Heuristic flag" in md
+
+
 def test_csv_has_header_and_rows():
     analysis = _make_analysis()
     csv = build_csv_findings(analysis)
