@@ -79,23 +79,93 @@ async def get_flags(job_id: str, severity: str | None = None, category: str | No
     return {"flags": [f.model_dump() for f in flags]}
 
 
+# --- New review-oriented endpoints ---
+
+
+@router.get("/jobs/{job_id}/value-movements")
+async def get_value_movements(job_id: str):
+    """Get value movement analysis."""
+    job = _get_job(job_id)
+    return job.value_movements.model_dump()
+
+
+@router.get("/jobs/{job_id}/review-properties")
+async def get_review_properties(job_id: str):
+    """Get inferred review properties."""
+    job = _get_job(job_id)
+    return job.review_properties.model_dump()
+
+
+@router.get("/jobs/{job_id}/risk-scenarios")
+async def get_risk_scenarios(job_id: str, severity: str | None = None):
+    """Get risk scenarios for manual review."""
+    job = _get_job(job_id)
+    data = job.risk_scenarios.model_dump()
+    if severity:
+        data["scenarios"] = [s for s in data["scenarios"] if s["severity_hint"] == severity]
+    return data
+
+
+@router.get("/jobs/{job_id}/review-worklist")
+async def get_review_worklist(job_id: str):
+    """Get a prioritized review worklist merging all three analyses."""
+    job = _get_job(job_id)
+
+    high_checks: list[str] = []
+    medium_checks: list[str] = []
+
+    # From risk scenarios
+    for scenario in job.risk_scenarios.scenarios:
+        for step in scenario.manual_validation_steps:
+            if scenario.severity_hint == "high":
+                high_checks.append(step)
+            else:
+                medium_checks.append(step)
+
+    # From value movements — unguarded caller-directed outflows
+    for edge in job.value_movements.edges:
+        if edge.direction == "outflow" and edge.caller_influenced and not edge.access_controlled:
+            for check in edge.manual_checks:
+                if check not in high_checks:
+                    high_checks.append(check)
+
+    # From review properties
+    for prop in job.review_properties.properties:
+        if prop.confidence == "high":
+            for check in prop.manual_checks:
+                if check not in high_checks:
+                    high_checks.append(check)
+        else:
+            for check in prop.manual_checks:
+                if check not in medium_checks:
+                    medium_checks.append(check)
+
+    return {
+        "high_priority_checks": list(dict.fromkeys(high_checks)),
+        "medium_priority_checks": list(dict.fromkeys(medium_checks)),
+    }
+
+
+# --- Deprecated adapter endpoints (backward compatibility) ---
+
+
 @router.get("/jobs/{job_id}/fund-flows")
 async def get_fund_flows(job_id: str):
-    """Get fund flow analysis."""
+    """[Deprecated] Get fund flow analysis — use /value-movements instead."""
     job = _get_job(job_id)
     return job.fund_flows.model_dump()
 
 
 @router.get("/jobs/{job_id}/invariants")
 async def get_invariants(job_id: str):
-    """Get inferred invariants."""
+    """[Deprecated] Get inferred invariants — use /review-properties instead."""
     job = _get_job(job_id)
     return job.invariants.model_dump()
 
 
 @router.get("/jobs/{job_id}/attack-surface")
 async def get_attack_surface(job_id: str, severity: str | None = None):
-    """Get attack surface analysis."""
+    """[Deprecated] Get attack surface analysis — use /risk-scenarios instead."""
     job = _get_job(job_id)
     data = job.attack_surface.model_dump()
     if severity:

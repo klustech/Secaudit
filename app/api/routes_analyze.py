@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import shutil
 from pathlib import Path
 
@@ -10,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app.models import AnalyzeRequest, RepoAnalysis
 from app.services import repo_fetcher, file_scanner, solidity_parser, heuristics_engine
-from app.services import fund_flow_analyzer, invariant_engine, attack_path_engine
+from app.services import value_movement_mapper, property_checklist_engine, risk_scenario_engine
 from app.services import report_builder, storage
 from app.utils.hashing import generate_job_id
 from app.utils.github import is_valid_github_url
@@ -67,29 +66,29 @@ async def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
         risk_flags = heuristics_engine.analyze_all(functions)
         analysis.risk_flags = risk_flags
 
-        # Step 5: Trace fund flows
+        # Step 5: Map value movements (replaces fund flow tracing)
         analysis.status = "analyzing"
-        analysis.progress = "Tracing fund flows..."
+        analysis.progress = "Mapping value movements..."
         storage.save_job(analysis)
 
-        fund_flows = fund_flow_analyzer.analyze_fund_flows(contracts, functions)
-        analysis.fund_flows = fund_flows
+        value_movements = value_movement_mapper.analyze_value_movements(contracts, functions)
+        analysis.value_movements = value_movements
 
-        # Step 6: Infer invariants
-        analysis.progress = "Inferring invariants..."
+        # Step 6: Infer review properties (replaces invariant inference)
+        analysis.progress = "Inferring review properties..."
         storage.save_job(analysis)
 
-        invariants = invariant_engine.infer_invariants(contracts, functions, risk_flags)
-        analysis.invariants = invariants
+        review_properties = property_checklist_engine.infer_review_properties(contracts, functions)
+        analysis.review_properties = review_properties
 
-        # Step 7: Analyze attack surface
-        analysis.progress = "Analyzing attack surface..."
+        # Step 7: Generate risk scenarios (replaces attack surface analysis)
+        analysis.progress = "Generating risk scenarios..."
         storage.save_job(analysis)
 
-        attack_surface = attack_path_engine.analyze_attack_surface(
-            contracts, functions, risk_flags, fund_flows, invariants
+        risk_scenarios = risk_scenario_engine.generate_risk_scenarios(
+            risk_flags, value_movements, review_properties
         )
-        analysis.attack_surface = attack_surface
+        analysis.risk_scenarios = risk_scenarios
 
         # Step 8: Set review priorities based on flag counts
         for contract in analysis.contracts:

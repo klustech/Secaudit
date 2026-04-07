@@ -5,9 +5,14 @@ from pydantic import BaseModel, Field
 from app.models.contract_info import ContractInfo
 from app.models.function_info import FunctionInfo
 from app.models.risk_flag import RiskFlag
-from app.models.fund_flow import FundFlowGraph
-from app.models.attack_surface import InvariantReport
-from app.models.attack_path import AttackSurfaceReport
+from app.models.value_movement import ValueMovementReport
+from app.models.review_property import PropertyChecklistReport
+from app.models.risk_scenario import RiskScenarioReport
+
+# Backward-compat aliases — old models still importable via adapters
+from app.models.fund_flow import FundFlowGraph  # noqa: F401 (adapter)
+from app.models.attack_surface import InvariantReport  # noqa: F401 (adapter)
+from app.models.attack_path import AttackSurfaceReport  # noqa: F401 (adapter)
 
 
 class AnalyzeRequest(BaseModel):
@@ -30,6 +35,11 @@ class RepoAnalysis(BaseModel):
     contracts: list[ContractInfo] = Field(default_factory=list)
     functions: list[FunctionInfo] = Field(default_factory=list)
     risk_flags: list[RiskFlag] = Field(default_factory=list)
+    # New review-oriented fields
+    value_movements: ValueMovementReport = Field(default_factory=ValueMovementReport)
+    review_properties: PropertyChecklistReport = Field(default_factory=PropertyChecklistReport)
+    risk_scenarios: RiskScenarioReport = Field(default_factory=RiskScenarioReport)
+    # Deprecated fields kept for adapter compatibility
     fund_flows: FundFlowGraph = Field(default_factory=FundFlowGraph)
     invariants: InvariantReport = Field(default_factory=InvariantReport)
     attack_surface: AttackSurfaceReport = Field(default_factory=AttackSurfaceReport)
