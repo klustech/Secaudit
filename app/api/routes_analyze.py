@@ -10,6 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app.models import AnalyzeRequest, RepoAnalysis
 from app.services import repo_fetcher, file_scanner, solidity_parser, heuristics_engine
+from app.services import fund_flow_analyzer, invariant_engine, attack_path_engine
 from app.services import report_builder, storage
 from app.utils.hashing import generate_job_id
 from app.utils.github import is_valid_github_url
@@ -66,7 +67,31 @@ async def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
         risk_flags = heuristics_engine.analyze_all(functions)
         analysis.risk_flags = risk_flags
 
-        # Step 5: Set review priorities based on flag counts
+        # Step 5: Trace fund flows
+        analysis.status = "analyzing"
+        analysis.progress = "Tracing fund flows..."
+        storage.save_job(analysis)
+
+        fund_flows = fund_flow_analyzer.analyze_fund_flows(contracts, functions)
+        analysis.fund_flows = fund_flows
+
+        # Step 6: Infer invariants
+        analysis.progress = "Inferring invariants..."
+        storage.save_job(analysis)
+
+        invariants = invariant_engine.infer_invariants(contracts, functions, risk_flags)
+        analysis.invariants = invariants
+
+        # Step 7: Analyze attack surface
+        analysis.progress = "Analyzing attack surface..."
+        storage.save_job(analysis)
+
+        attack_surface = attack_path_engine.analyze_attack_surface(
+            contracts, functions, risk_flags, fund_flows, invariants
+        )
+        analysis.attack_surface = attack_surface
+
+        # Step 8: Set review priorities based on flag counts
         for contract in analysis.contracts:
             fn_flags = [f for f in risk_flags
                         if f.contract == contract.name
@@ -78,7 +103,7 @@ async def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
             else:
                 contract.review_priority = "low"
 
-        # Step 6: Add scope notes
+        # Step 9: Add scope notes
         if req.scope_notes:
             analysis.notes.append(f"Scope notes: {req.scope_notes}")
         if req.docs_url:
@@ -88,7 +113,7 @@ async def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
         analysis.progress = "Analysis complete."
         storage.save_job(analysis)
 
-        # Step 7: Save exports
+        # Step 10: Save exports
         export_dir = Path("./data/exports") / job_id
         export_dir.mkdir(parents=True, exist_ok=True)
         (export_dir / "report.md").write_text(report_builder.build_markdown(analysis))

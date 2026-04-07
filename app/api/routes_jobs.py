@@ -77,3 +77,27 @@ async def get_flags(job_id: str, severity: str | None = None, category: str | No
     if category:
         flags = [f for f in flags if f.category == category]
     return {"flags": [f.model_dump() for f in flags]}
+
+
+@router.get("/jobs/{job_id}/fund-flows")
+async def get_fund_flows(job_id: str):
+    """Get fund flow analysis."""
+    job = _get_job(job_id)
+    return job.fund_flows.model_dump()
+
+
+@router.get("/jobs/{job_id}/invariants")
+async def get_invariants(job_id: str):
+    """Get inferred invariants."""
+    job = _get_job(job_id)
+    return job.invariants.model_dump()
+
+
+@router.get("/jobs/{job_id}/attack-surface")
+async def get_attack_surface(job_id: str, severity: str | None = None):
+    """Get attack surface analysis."""
+    job = _get_job(job_id)
+    data = job.attack_surface.model_dump()
+    if severity:
+        data["paths"] = [p for p in data["paths"] if p["severity"] == severity]
+    return data

@@ -93,6 +93,92 @@ def build_markdown(analysis: RepoAnalysis) -> str:
                     lines.append(f"  - [ ] {step}")
             lines.append("")
 
+    # Fund Flow Analysis
+    ff = analysis.fund_flows
+    if ff.edges:
+        lines.append("## Fund Flow Analysis")
+        lines.append("")
+        if ff.entry_points:
+            lines.append("### Value Entry Points (money IN)")
+            for ep in ff.entry_points:
+                lines.append(f"- `{ep}`")
+            lines.append("")
+        if ff.exit_points:
+            lines.append("### Value Exit Points (money OUT)")
+            for ep in ff.exit_points:
+                marker = " **[UNGUARDED]**" if ep in ff.unguarded_exits else ""
+                lines.append(f"- `{ep}`{marker}")
+            lines.append("")
+        if ff.unguarded_exits:
+            lines.append("### Unguarded Exit Points")
+            for ue in ff.unguarded_exits:
+                lines.append(f"- `{ue}` — no access control detected on value outflow")
+            lines.append("")
+        lines.append("### Flow Edges")
+        lines.append("| From | To | Mechanism | Token | Recipient | Guarded | Reentrancy Safe |")
+        lines.append("|------|----|-----------|-------|-----------|---------|-----------------|")
+        for edge in ff.edges:
+            src = f"{edge.source_contract}.{edge.source_function}" if edge.source_function else edge.source_contract
+            sink = f"{edge.sink_contract}.{edge.sink_function}" if edge.sink_function else edge.sink_contract
+            lines.append(
+                f"| `{src}` | `{sink}` | {edge.mechanism} | "
+                f"{edge.token} | {edge.recipient} | "
+                f"{'Yes' if edge.guarded else 'No'} | "
+                f"{'Yes' if edge.reentrancy_safe else 'No'} |"
+            )
+        lines.append("")
+
+    # Invariant Analysis
+    inv = analysis.invariants
+    if inv.invariants:
+        lines.append("## Invariant Analysis")
+        lines.append(f"*{inv.summary}*")
+        lines.append("")
+        for i, invariant in enumerate(inv.invariants, 1):
+            threatened = " **THREATENED**" if invariant.threatened_by else ""
+            lines.append(f"### Invariant {i}: {invariant.description}{threatened}")
+            lines.append(f"- Kind: {invariant.kind}")
+            lines.append(f"- Confidence: {invariant.confidence}")
+            lines.append(f"- Evidence: {invariant.evidence}")
+            if invariant.threatened_by:
+                lines.append(f"- Threatened by: {', '.join(f'`{t}`' for t in invariant.threatened_by)}")
+            if invariant.manual_checks:
+                lines.append("- Manual checks:")
+                for check in invariant.manual_checks:
+                    lines.append(f"  - [ ] {check}")
+            lines.append("")
+
+    # Attack Surface Analysis
+    atk = analysis.attack_surface
+    if atk.paths:
+        lines.append("## Attack Surface Analysis")
+        lines.append(f"*{atk.summary}*")
+        lines.append("")
+
+        # Group by severity
+        for sev in ["critical", "high", "medium", "low"]:
+            sev_paths = [p for p in atk.paths if p.severity == sev]
+            if not sev_paths:
+                continue
+            lines.append(f"### {sev.upper()} Severity Paths")
+            for path in sev_paths:
+                lines.append(f"#### [{path.id}] {path.title}")
+                lines.append(f"- Category: {path.risk_category}")
+                lines.append(f"- Affected: {', '.join(f'`{f}`' for f in path.affected_functions)}")
+                lines.append(f"- Consequence: {path.consequence}")
+                lines.append(f"- Likelihood: {path.likelihood}")
+                if path.preconditions:
+                    lines.append("- Preconditions:")
+                    for pre in path.preconditions:
+                        lines.append(f"  - {pre}")
+                lines.append(f"- Why concerning: {path.why_concerning}")
+                lines.append(f"- Existing mitigations: {path.what_prevents_it}")
+                if path.validation_steps:
+                    lines.append("- Validation steps:")
+                    for step in path.validation_steps:
+                        lines.append(f"  - [ ] {step}")
+                lines.append("")
+
     # Notes
     if analysis.notes:
         lines.append("## Notes")
