@@ -1,0 +1,15 @@
+Turn the structured evidence into a cautious audit note.
+
+Rules:
+- Do not claim a vulnerability is confirmed unless evidence proves it.
+- Use wording like "potential issue", "requires validation", or "appears safe".
+- Do not provide exploitation steps.
+
+Output JSON:
+{
+  "title": "",
+  "summary": "",
+  "impact_hypothesis": "",
+  "evidence": [],
+  "next_validation_steps": []
+}

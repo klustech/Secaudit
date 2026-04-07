@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.env
+data/jobs/*
+data/cache/*
+data/exports/*
+!data/jobs/.gitkeep
+!data/cache/.gitkeep
+!data/exports/.gitkeep
+node_modules/
+dist/
+.vite/
+*.egg-info/
+.pytest_cache/

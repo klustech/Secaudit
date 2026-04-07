@@ -1,0 +1,20 @@
+Explain this Solidity function for a junior reviewer.
+
+Focus on:
+- who can call it
+- what state it changes
+- whether value or tokens can move
+- what assumptions it relies on
+- what should be manually verified
+
+Do not give attack instructions.
+
+Output JSON:
+{
+  "summary": "",
+  "caller_constraints": [],
+  "state_changes": [],
+  "value_movement": [],
+  "assumptions": [],
+  "manual_checks": []
+}
