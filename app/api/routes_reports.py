@@ -1,4 +1,10 @@
-"""Report export endpoints."""
+"""Report export endpoints.
+
+Sanitization note: Exports are re-sanitized as **defense-in-depth**.
+The pipeline already sanitizes before persistence, so these passes are
+normally no-ops.  See ``app.services.sanitization_policy`` for the full
+layered-defense architecture.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +14,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse, FileResponse
 
 from app.services import storage, report_builder
-from app.services.safety_filter import sanitize_text, sanitize_dict
+from app.services.sanitization_policy import sanitize_text, sanitize_dict
 
 router = APIRouter()
 

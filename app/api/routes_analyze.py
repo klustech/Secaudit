@@ -11,7 +11,7 @@ from app.models import AnalyzeRequest, RepoAnalysis
 from app.services import repo_fetcher, file_scanner, solidity_parser, heuristics_engine
 from app.services import value_movement_mapper, property_checklist_engine, risk_scenario_engine
 from app.services import report_builder, storage
-from app.services.safety_filter import sanitize_text, sanitize_model
+from app.services.sanitization_policy import sanitize_text, sanitize_model
 from app.utils.hashing import generate_job_id
 from app.utils.github import is_valid_github_url
 
@@ -91,7 +91,9 @@ async def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
         )
         analysis.risk_scenarios = risk_scenarios
 
-        # Step 7b: Run safety filter on all generated outputs
+        # Step 7b: Authoritative sanitization pass (source of truth).
+        # Data is sanitized here BEFORE persistence so that all downstream
+        # consumers (API, reports, frontend) receive clean data.
         analysis.value_movements = sanitize_model(analysis.value_movements)
         analysis.review_properties = sanitize_model(analysis.review_properties)
         analysis.risk_scenarios = sanitize_model(analysis.risk_scenarios)

@@ -8,7 +8,7 @@ from pathlib import Path
 from huggingface_hub import InferenceClient
 
 from app.config import settings
-from app.services.safety_filter import sanitize_text, sanitize_dict
+from app.services.sanitization_policy import sanitize_text, sanitize_dict
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 

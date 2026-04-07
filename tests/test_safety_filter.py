@@ -1,6 +1,6 @@
 """Tests for the safety output filter."""
 
-from app.services.safety_filter import sanitize_text, contains_unsafe_terms, sanitize_dict
+from app.services.sanitization_policy import sanitize_text, contains_unsafe_terms, sanitize_dict
 
 
 def test_exploit_replaced():
