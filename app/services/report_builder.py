@@ -138,6 +138,11 @@ def build_markdown(analysis: RepoAnalysis) -> str:
             lines.append(f"- Kind: {prop.kind}")
             lines.append(f"- Rationale: {prop.rationale}")
             lines.append(f"- Confidence: {prop.confidence}")
+            lines.append(f"- Source type: {prop.source_type}")
+            if prop.confidence_basis:
+                lines.append(f"- Confidence basis: {prop.confidence_basis}")
+            if prop.evidence_refs:
+                lines.append(f"- Evidence: {', '.join(f'`{r}`' for r in prop.evidence_refs)}")
             if prop.related_functions:
                 lines.append(f"- Related functions: {', '.join(f'`{f}`' for f in prop.related_functions)}")
             if prop.manual_checks:
@@ -165,6 +170,11 @@ def build_markdown(analysis: RepoAnalysis) -> str:
             for scenario in sev_scenarios:
                 lines.append(f"#### {scenario.title}")
                 lines.append(f"- Category: {scenario.category}")
+                lines.append(f"- Source type: {scenario.source_type}")
+                if scenario.confidence_basis:
+                    lines.append(f"- Confidence basis: {scenario.confidence_basis}")
+                if scenario.evidence_refs:
+                    lines.append(f"- Evidence: {', '.join(f'`{r}`' for r in scenario.evidence_refs)}")
                 lines.append(f"- Why it matters: {scenario.why_it_matters}")
                 if scenario.affected_functions:
                     lines.append(f"- Affected: {', '.join(f'`{f}`' for f in scenario.affected_functions)}")

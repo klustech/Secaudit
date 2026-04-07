@@ -8,6 +8,7 @@ from pathlib import Path
 from huggingface_hub import InferenceClient
 
 from app.config import settings
+from app.services.safety_filter import sanitize_text, sanitize_dict
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -62,6 +63,13 @@ def _try_parse_json(text: str) -> dict | str:
     return text
 
 
+def _sanitize_llm_output(result: dict | str) -> dict | str:
+    """Apply safety filter to LLM output."""
+    if isinstance(result, dict):
+        return sanitize_dict(result)
+    return sanitize_text(result)
+
+
 def summarize_contract(source_code: str) -> dict | str:
     """Summarize a contract using the contract_summary prompt."""
     prompt = _load_prompt("contract_summary.txt")
@@ -70,7 +78,7 @@ def summarize_contract(source_code: str) -> dict | str:
         prompt,
         f"```solidity\n{source_code[:8000]}\n```",
     )
-    return _try_parse_json(result)
+    return _sanitize_llm_output(_try_parse_json(result))
 
 
 def classify_function(source_code: str) -> dict | str:
@@ -81,7 +89,7 @@ def classify_function(source_code: str) -> dict | str:
         prompt,
         f"```solidity\n{source_code[:4000]}\n```",
     )
-    return _try_parse_json(result)
+    return _sanitize_llm_output(_try_parse_json(result))
 
 
 def explain_function(source_code: str) -> dict | str:
@@ -92,7 +100,7 @@ def explain_function(source_code: str) -> dict | str:
         prompt,
         f"```solidity\n{source_code[:4000]}\n```",
     )
-    return _try_parse_json(result)
+    return _sanitize_llm_output(_try_parse_json(result))
 
 
 def draft_finding(evidence: dict) -> dict | str:
@@ -103,4 +111,4 @@ def draft_finding(evidence: dict) -> dict | str:
         prompt,
         json.dumps(evidence, indent=2),
     )
-    return _try_parse_json(result)
+    return _sanitize_llm_output(_try_parse_json(result))

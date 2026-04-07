@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse, FileResponse
 
 from app.services import storage, report_builder
+from app.services.safety_filter import sanitize_text, sanitize_dict
 
 router = APIRouter()
 
@@ -24,14 +25,14 @@ async def get_markdown_report(job_id: str):
     """Return the markdown audit report."""
     job = _get_job(job_id)
     md = report_builder.build_markdown(job)
-    return PlainTextResponse(content=md, media_type="text/markdown")
+    return PlainTextResponse(content=sanitize_text(md), media_type="text/markdown")
 
 
 @router.get("/jobs/{job_id}/report.json")
 async def get_json_report(job_id: str):
     """Return the full analysis as JSON."""
     job = _get_job(job_id)
-    return job.model_dump()
+    return sanitize_dict(job.model_dump())
 
 
 @router.get("/jobs/{job_id}/report.csv")
@@ -39,4 +40,4 @@ async def get_csv_report(job_id: str):
     """Return risk flags as CSV."""
     job = _get_job(job_id)
     csv = report_builder.build_csv_findings(job)
-    return PlainTextResponse(content=csv, media_type="text/csv")
+    return PlainTextResponse(content=sanitize_text(csv), media_type="text/csv")

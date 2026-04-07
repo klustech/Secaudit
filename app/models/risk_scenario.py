@@ -21,6 +21,12 @@ class RiskScenario(BaseModel):
     severity_hint: Literal["low", "medium", "high"] = "medium"
     manual_validation_steps: list[str] = Field(default_factory=list)
     remediation_themes: list[str] = Field(default_factory=list)
+    # Provenance fields
+    source_type: Literal[
+        "parsed_fact", "heuristic_flag", "ai_review_note",
+    ] = "heuristic_flag"
+    confidence_basis: str = ""
+    evidence_refs: list[str] = Field(default_factory=list)
 
 
 class RiskScenarioReport(BaseModel):

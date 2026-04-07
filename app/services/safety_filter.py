@@ -51,12 +51,32 @@ def sanitize_dict(data: dict) -> dict:
         elif isinstance(value, dict):
             sanitized[key] = sanitize_dict(value)
         elif isinstance(value, list):
-            sanitized[key] = [
-                sanitize_text(item) if isinstance(item, str)
-                else sanitize_dict(item) if isinstance(item, dict)
-                else item
-                for item in value
-            ]
+            sanitized[key] = _sanitize_list(value)
         else:
             sanitized[key] = value
     return sanitized
+
+
+def _sanitize_list(items: list) -> list:
+    """Recursively sanitize all items in a list."""
+    return [
+        sanitize_text(item) if isinstance(item, str)
+        else sanitize_dict(item) if isinstance(item, dict)
+        else _sanitize_list(item) if isinstance(item, list)
+        else item
+        for item in items
+    ]
+
+
+def sanitize_model(model: object) -> object:
+    """Sanitize all string fields in a Pydantic model by returning a sanitized copy.
+
+    Works with any Pydantic BaseModel by dumping to dict, sanitizing, and
+    reconstructing.
+    """
+    from pydantic import BaseModel
+    if isinstance(model, BaseModel):
+        data = model.model_dump()
+        sanitized_data = sanitize_dict(data)
+        return model.__class__(**sanitized_data)
+    return model
